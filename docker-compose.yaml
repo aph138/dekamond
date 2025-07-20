@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mongo:8.0.11
+    container_name: dekamond-db
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin_user
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    ports:
+      - "27017:27017"
+    volumes:
+      - dekamond-data:/data/db
+      - dekamond-data:/var/log/mongodb
+    command:
+      - "--logpath"
+      - "/var/log/mongodb/mongod.log"
+  application:
+    depends_on:
+      - db
+    build:
+      context: ./
+      dockerfile: cmd/dockerfile
+    container_name: dekamond-app
+    ports:
+      - "9000:9000"
+volumes:
+  dekamond-data:

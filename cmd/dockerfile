@@ -1,0 +1,18 @@
+FROM golang:1.24.5
+
+WORKDIR /app
+
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.5
+
+COPY go.sum go.mod ./
+
+RUN go mod download
+
+COPY pkg ./pkg
+COPY internal ./internal
+COPY cmd .
+
+RUN swag init -g internal/app/handlers.go
+
+RUN go build -o app .
+CMD [ "./app" ]

@@ -1,0 +1,106 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This an example OTP implementation",
+        "title": "dekamond example swagger API",
+        "contact": {},
+        "version": "0.1"
+    },
+    "host": "localhost:9000",
+    "basePath": "/",
+    "paths": {
+        "/check": {
+            "post": {
+                "description": "accepts a phone number and an OTP code and return JWT token if they are valid",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "valid phone number and code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app.CheckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "accepts a phone number and create a OTP code if phone number is valid and there is no valid code for that number",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "valid phone number as string",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.APIResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "app.APIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "result": {}
+            }
+        },
+        "app.CheckRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "123456"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "09012345678"
+                }
+            }
+        },
+        "app.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "phone": {
+                    "type": "string",
+                    "example": "09012345678"
+                }
+            }
+        }
+    }
+}
