@@ -51,15 +51,23 @@ func NewMongo(address, name string, timeout time.Duration, opt *options.ClientOp
 	}, nil
 }
 
-// create index for phone field to improving performance
+// create index for phone and register_at field to improving performance when searching
 func createIndices(db *mongo.Database) error {
-	userIndexModel := mongo.IndexModel{
+	userPhoneIndexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "phone", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
-	_, err := db.Collection(UserCollection).Indexes().CreateOne(context.Background(), userIndexModel)
+	_, err := db.Collection(UserCollection).Indexes().CreateOne(context.Background(), userPhoneIndexModel)
 	if err != nil {
-		return fmt.Errorf("err when creating user index: %w", err)
+		return fmt.Errorf("err when creating user phone index: %w", err)
+	}
+	userRegisterIndexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "register_at", Value: 1}},
+		Options: options.Index(),
+	}
+	_, err = db.Collection(UserCollection).Indexes().CreateOne(context.Background(), userRegisterIndexModel)
+	if err != nil {
+		return fmt.Errorf("err when creating user register index: %w", err)
 	}
 	return nil
 }
@@ -100,7 +108,12 @@ func (d *MyMongo) UpdateOne(col string, filter, query any, opts ...options.Liste
 
 func (d *MyMongo) SaveUser(phone string) (string, error) {
 	filter := bson.M{"phone": phone}
-	upsertQuery := bson.M{"$setOnInsert": entity.User{Phone: phone}}
+	upsertQuery := bson.M{
+		"$setOnInsert": entity.User{Phone: phone, RegisteredAt: time.Now()},
+		"$set": bson.M{
+			"last_login": time.Now(),
+		},
+	}
 	result, err := d.UpdateOne(UserCollection, filter, upsertQuery, options.UpdateOne().SetUpsert(true))
 	if err != nil {
 		return "", fmt.Errorf("err when upserting user with mongodb: %w", err)
@@ -115,4 +128,49 @@ func (d *MyMongo) SaveUser(phone string) (string, error) {
 		}
 		return user.ID.Hex(), nil
 	}
+}
+
+func (d *MyMongo) SearchUser(opts ...SearchUserOption) ([]entity.User, error) {
+	var result []entity.User
+	option := &searchUserOption{
+		pagination: searchUserPagination{
+			limit: 10,
+			page:  1,
+		},
+	}
+	// apply options
+	for _, opt := range opts {
+		opt(option)
+	}
+	findOption := options.Find().
+		SetSkip(option.pagination.limit * (option.pagination.page - 1)).
+		SetLimit(option.pagination.limit).
+		SetSort(bson.D{bson.E{Key: "register_at", Value: -1}})
+	filter := bson.M{}
+	if len(option.phone) > 0 {
+		filter["phone"] = option.phone
+	}
+	if option.registerFrom != nil || option.registerTO != nil {
+		filter["register_at"] = bson.M{
+			"$gte": option.registerFrom,
+			"$lte": option.registerTO,
+		}
+	}
+	cursor, err := d.db.Collection(UserCollection).Find(context.Background(), filter, findOption)
+	if err != nil {
+		return nil, fmt.Errorf("err when finding from db %w", err)
+	}
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var user entity.User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, fmt.Errorf("err when decoding result %w", err)
+		}
+		result = append(result, user)
+	}
+	return result, nil
+}
+
+func (d *MyMongo) Close(ctx context.Context) error {
+	return d.db.Client().Disconnect(context.Background())
 }

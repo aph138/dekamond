@@ -13,39 +13,45 @@ import (
 	"time"
 
 	_ "github.com/aph138/dekamond/docs"
+	"github.com/aph138/dekamond/internal/cache"
 	"github.com/aph138/dekamond/internal/db"
 	"github.com/aph138/dekamond/pkg/authentication"
-	"github.com/aph138/dekamond/pkg/otp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Application struct {
 	logger *slog.Logger
 	jwt    *authentication.JWT
-	otp    *otp.OTP
+	cache  cache.Cache
 	db     db.Database
 }
 
-func NewApplication(logger *slog.Logger, jwt *authentication.JWT, otp *otp.OTP, db db.Database) *Application {
+func NewApplication(
+	logger *slog.Logger,
+	jwt *authentication.JWT,
+	cache cache.Cache,
+	db db.Database,
+) *Application {
 	return &Application{
 		logger: logger,
 		jwt:    jwt,
-		otp:    otp,
+		cache:  cache,
 		db:     db,
 	}
 }
 
-func (a *Application) Run() {
+func (a *Application) Run(port int) {
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /login", a.LoginHandler)
 	mux.HandleFunc("POST /check", a.CheckHandler)
+	mux.HandleFunc("GET /search", a.SearchUserHandler)
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	// at the production level, it's better to specify timeouts explicitly
 	server := &http.Server{
-		Addr:    ":9000",
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 
@@ -57,20 +63,18 @@ func (a *Application) Run() {
 	}()
 
 	// handling any interruption gracefully
-	shutdown := make(chan any)
-	go func() {
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-		<-sig
-		a.logger.Info("starting graceful shutdown")
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-		if err := server.Shutdown(ctx); err != nil {
-			a.logger.Error(fmt.Errorf("err when shutting down the server %w", err).Error())
-		}
-		close(shutdown)
-	}()
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
+	a.logger.Info("starting graceful shutdown")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		a.logger.Error(fmt.Errorf("err when shutting down the server %w", err).Error())
+	}
+	// closing cache and database
+	a.cache.Close(context.Background())
+	a.db.Close(context.Background())
 
-	<-shutdown
 	a.logger.Info("server is successfully shut down")
 }

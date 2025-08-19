@@ -46,9 +46,11 @@ func (o *OTP) cleanup() {
 }
 
 var ErrOTPStillValid = errors.New("a valid OTP still exists")
+var ErrRateLimit = errors.New("")
 
 // NewCode generate and save an OTP code if it doesn't exist.
 // It returns ErrOTPStillValid if there is a valid key.
+// It returns ErrRateLimit with must to wait time if user exceeds rate limit.
 func (o *OTP) NewCode(key string) error {
 	// check if a valid code doesn't exist already
 	o.mu.RLock()

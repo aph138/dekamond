@@ -14,14 +14,29 @@ services:
     command:
       - "--logpath"
       - "/var/log/mongodb/mongod.log"
+  redis:
+    image: redis:latest
+    container_name: dekamond-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - dekamond-data:/data
   application:
     depends_on:
+      - redis
       - db
     build:
       context: ./
       dockerfile: cmd/dockerfile
     container_name: dekamond-app
+    environment:
+      - DB_ADDRESS=mongodb://db:27017/
+      - DB_USERNAME=admin_user
+      - DB_PASSWORD=password
+      - DB_NAME=dekamond
+      - REDIS_ADDRESS=redis:6379
     ports:
-      - "9000:9000"
+      - "${APP_PORT:-9000}:${APP_PORT:-9000}"
 volumes:
   dekamond-data:

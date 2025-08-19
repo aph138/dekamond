@@ -17,12 +17,15 @@ const docTemplate = `{
     "paths": {
         "/check": {
             "post": {
-                "description": "accepts a phone number and an OTP code and return JWT token if they are valid",
+                "description": "Accepts a phone number and an OTP code and return JWT token if they are valid",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
-                    "application/json"
+                    "text/plain"
+                ],
+                "tags": [
+                    "login"
                 ],
                 "parameters": [
                     {
@@ -37,9 +40,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "JWT containing user ID",
                         "schema": {
-                            "$ref": "#/definitions/app.APIResponse"
+                            "type": "string"
                         }
                     }
                 }
@@ -47,11 +50,8 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "accepts a phone number and create a OTP code if phone number is valid and there is no valid code for that number",
+                "description": "Accepts a phone number and create an OTP code if the phone number is valid and no OTP code is currently valid that number.",
                 "consumes": [
-                    "application/json"
-                ],
-                "produces": [
                     "application/json"
                 ],
                 "parameters": [
@@ -66,10 +66,54 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
+                    "201": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/search": {
+            "get": {
+                "description": "Retrieve users",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "09012345678",
+                        "description": "A valid phone number for searching a specific user.",
+                        "name": "phone",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "2024-01-01,2025-10-12",
+                        "description": "A date range to search for users who registered within that period in YYYY-MM-DD format, separated by a comma.",
+                        "name": "register",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "The page number of the results. Default is 1. Negative numbers and zero are treated as 1.",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "The number of items per page. Default is 10. Negative numbers and zero are treated as 1.",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app.APIResponse"
+                            "$ref": "#/definitions/app.SearchResponse"
                         }
                     }
                 }
@@ -77,15 +121,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "app.APIResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "result": {}
-            }
-        },
         "app.CheckRequest": {
             "type": "object",
             "properties": {
@@ -105,6 +140,37 @@ const docTemplate = `{
                 "phone": {
                     "type": "string",
                     "example": "09012345678"
+                }
+            }
+        },
+        "app.SearchResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "result": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.User"
+                    }
+                }
+            }
+        },
+        "entity.User": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "last_login": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "register_at": {
+                    "type": "string"
                 }
             }
         }

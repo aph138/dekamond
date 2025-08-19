@@ -4,36 +4,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/aph138/dekamond/internal/app"
-	"github.com/aph138/dekamond/pkg/authentication"
-	"github.com/aph138/dekamond/pkg/otp"
 )
 
 var myApp *app.Application
 
 func setup() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	jwtKey, err := authentication.GenerateKey(8)
-	if err != nil {
-		logger.Error(fmt.Sprintf("err when generating key for jwt: %s", err.Error()))
-		os.Exit(1)
-	}
-	jwt, err := authentication.NewJWT(jwtKey)
-	if err != nil {
-		logger.Error(fmt.Sprintf("err when creating JWT instance: %s", err.Error()))
-		os.Exit(1)
-	}
-	db := &MockDB{
-		user: map[string]string{},
-	}
-	myApp = app.NewApplication(logger, jwt, otp.NewOTP(time.Minute*2), db)
+	// logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	// jwtKey, err := authentication.GenerateKey(8)
+	// if err != nil {
+	// 	logger.Error(fmt.Sprintf("err when generating key for jwt: %s", err.Error()))
+	// 	os.Exit(1)
+	// }
+	// jwt, err := authentication.NewJWT(jwtKey)
+	// if err != nil {
+	// 	logger.Error(fmt.Sprintf("err when creating JWT instance: %s", err.Error()))
+	// 	os.Exit(1)
+	// }
+	// db := &MockDB{
+	// 	user: map[string]string{},
+	// }
+	// myApp = app.NewApplication(logger, jwt, otp.NewOTP(time.Minute*2), db)
 }
 
 func TestMain(m *testing.M) {

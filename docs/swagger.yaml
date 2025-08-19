@@ -1,11 +1,5 @@
 basePath: /
 definitions:
-  app.APIResponse:
-    properties:
-      code:
-        type: integer
-      result: {}
-    type: object
   app.CheckRequest:
     properties:
       code:
@@ -21,6 +15,26 @@ definitions:
         example: "09012345678"
         type: string
     type: object
+  app.SearchResponse:
+    properties:
+      code:
+        type: integer
+      result:
+        items:
+          $ref: '#/definitions/entity.User'
+        type: array
+    type: object
+  entity.User:
+    properties:
+      id:
+        type: string
+      last_login:
+        type: string
+      phone:
+        type: string
+      register_at:
+        type: string
+    type: object
 host: localhost:9000
 info:
   contact: {}
@@ -32,7 +46,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: accepts a phone number and an OTP code and return JWT token if
+      description: Accepts a phone number and an OTP code and return JWT token if
         they are valid
       parameters:
       - description: valid phone number and code
@@ -42,18 +56,20 @@ paths:
         schema:
           $ref: '#/definitions/app.CheckRequest'
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
-          description: OK
+          description: JWT containing user ID
           schema:
-            $ref: '#/definitions/app.APIResponse'
+            type: string
+      tags:
+      - login
   /login:
     post:
       consumes:
       - application/json
-      description: accepts a phone number and create a OTP code if phone number is
-        valid and there is no valid code for that number
+      description: Accepts a phone number and create an OTP code if the phone number
+        is valid and no OTP code is currently valid that number.
       parameters:
       - description: valid phone number as string
         in: body
@@ -61,11 +77,41 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/app.LoginRequest'
+      responses:
+        "201":
+          description: No Content
+  /search:
+    get:
+      description: Retrieve users
+      parameters:
+      - description: A valid phone number for searching a specific user.
+        example: "09012345678"
+        in: query
+        name: phone
+        type: string
+      - description: A date range to search for users who registered within that period
+          in YYYY-MM-DD format, separated by a comma.
+        example: 2024-01-01,2025-10-12
+        in: query
+        name: register
+        type: string
+      - description: The page number of the results. Default is 1. Negative numbers
+          and zero are treated as 1.
+        in: query
+        name: page
+        type: integer
+      - description: The number of items per page. Default is 10. Negative numbers
+          and zero are treated as 1.
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/app.APIResponse'
+            $ref: '#/definitions/app.SearchResponse'
+      tags:
+      - user
 swagger: "2.0"
