@@ -6,6 +6,9 @@ swagger:
 swagg-fmt:
 	swag fmt --dir internal/app
 
+.PHONY: prepare_test
+prepare_test:
+	
 .PHONY: test
 test: 
 	go test ./test -v
